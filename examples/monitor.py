@@ -495,6 +495,11 @@ class DetailView(ChannelView):
         self.icon(icon_backdrop, (0, 0), COLOR_WHITE)
         self.icon(icon_rightarrow, (3, 3), (55, 55, 55))
 
+        # Water
+        if self.channel.auto_water:
+            self.icon(icon_backdrop, (0, DISPLAY_HEIGHT - 26), COLOR_WHITE)
+            self.icon(icon_drop, (3, DISPLAY_HEIGHT - 26 + 3), (55, 55, 55))
+
         # Prev button
         # self.icon(icon_backdrop, (0, DISPLAY_HEIGHT - 26), COLOR_WHITE)
         # self.icon(icon_return, (3, DISPLAY_HEIGHT - 26 + 3), (55, 55, 55))
@@ -503,6 +508,8 @@ class DetailView(ChannelView):
         self.icon(icon_backdrop.rotate(180), (DISPLAY_WIDTH - 26, 0), COLOR_WHITE)
         self.icon(icon_settings, (DISPLAY_WIDTH - 19 - 3, 3), (55, 55, 55))
 
+    def button_b(self):
+        self.channel.water()
 
 class ChannelEditView(ChannelView, EditView):
     """Single channel edit."""
@@ -813,7 +820,7 @@ class ViewController:
         self.views = views
         self._current_view = 0
         self._current_subview = 0
-    
+
     @property
     def home(self):
         return self._current_view == 0 and self._current_subview == 0
