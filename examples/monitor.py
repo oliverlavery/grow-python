@@ -10,6 +10,12 @@ import time
 import ltr559
 import RPi.GPIO as GPIO
 import ST7735
+try:
+    from smbus2 import SMBus
+except ImportError:
+    from smbus import SMBus
+from bme280 import BME280
+
 from fonts.ttf import RobotoMedium as UserFont
 from PIL import Image, ImageDraw, ImageFont
 
@@ -183,10 +189,10 @@ class MainView(View):
 
     """
 
-    def __init__(self, image, channels=None, alarm=None):
+    def __init__(self, image, channels=None, alarm=None, humidifier=None):
         self.channels = channels
         self.alarm = alarm
-
+        self.humidifier = humidifier
         View.__init__(self, image)
 
     def render_channel(self, channel):
@@ -240,6 +246,17 @@ class MainView(View):
         for channel in self.channels:
             self.render_channel(channel)
 
+        # Humidifier Overlay
+        if self.humidifier:
+            str_overlay = u'{:05.2f}\u00b0C {:05.2f}%'.format(self.humidifier.temperature, self.humidifier.humidity)
+            tw, th = self.font.getsize(str_overlay)
+            self._draw.text(
+                ((DISPLAY_WIDTH / 2) - (tw / 2.0)), DISPLAY_HEIGHT - th,
+                str_overlay,
+                font=self.font,
+                fill=COLOR_WHITE,
+            )
+
         # Icons
         self.icon(icon_backdrop, (0, 0), COLOR_WHITE)
         self.icon(icon_rightarrow, (3, 3), (55, 55, 55))
@@ -248,6 +265,7 @@ class MainView(View):
 
         self.icon(icon_backdrop.rotate(180), (DISPLAY_WIDTH - 26, 0), COLOR_WHITE)
         self.icon(icon_settings, (DISPLAY_WIDTH - 19 - 3, 3), (55, 55, 55))
+
 
 
 class EditView(View):
@@ -946,6 +964,16 @@ class Config:
     def set_general(self, settings):
         self.set("general", settings)
 
+class Humidifier:
+    def __init__(self):
+        self.bus = SMBus(1)
+        self.bme280 = BME280(i2c_dev=self.bus)
+        self.humidity = self.bme280.get_humidity()
+        self.temperature = self.bme280.get_temperature()
+
+    def update(self):
+        self.humidity = self.bme280.get_humidity()
+        self.temperature = self.bme280.get_temperature()
 
 def main():
     def handle_button(pin):
@@ -988,6 +1016,8 @@ def main():
         Channel(2, 2, 2),
         Channel(3, 3, 3),
     ]
+
+    humidifier = Humidifier()
 
     alarm = Alarm(image)
 
@@ -1044,7 +1074,7 @@ Alarm Interval: {:.2f}s
     viewcontroller = ViewController(
         [
             (
-                MainView(image, channels=channels, alarm=alarm),
+                MainView(image, channels=channels, alarm=alarm, humidifier=humidifier),
                 SettingsView(image, options=main_options),
             ),
             (
@@ -1069,6 +1099,7 @@ Alarm Interval: {:.2f}s
             if channel.alarm:
                 alarm.trigger()
 
+        humidifier.update()
         alarm.update(light.get_lux() < 4.0)
 
         viewcontroller.update()
