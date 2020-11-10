@@ -25,9 +25,11 @@ from grow.moisture import Moisture
 from grow.pump import Pump
 
 
-FPS = 2
+FPS = 5.0
 
 BUTTONS = [5, 6, 16, 24]
+HUMIDIFIER_PIN = 21
+
 LABELS = ["A", "B", "X", "Y"]
 
 DISPLAY_WIDTH = 160
@@ -246,6 +248,15 @@ class MainView(View):
         for channel in self.channels:
             self.render_channel(channel)
 
+        # Icons
+        self.icon(icon_backdrop, (0, 0), COLOR_WHITE)
+        self.icon(icon_rightarrow, (3, 3), (55, 55, 55))
+
+        self.alarm.render((3, DISPLAY_HEIGHT - 23))
+
+        self.icon(icon_backdrop.rotate(180), (DISPLAY_WIDTH - 26, 0), COLOR_WHITE)
+        self.icon(icon_settings, (DISPLAY_WIDTH - 19 - 3, 3), (55, 55, 55))
+
         # Humidifier Overlay
         if self.humidifier:
             str_overlay = u'{:5.1f}\u00b0C  {:5.1f}%'.format(self.humidifier.temperature, self.humidifier.humidity)
@@ -256,16 +267,6 @@ class MainView(View):
                 font=self.font,
                 fill=COLOR_WHITE,
             )
-
-        # Icons
-        self.icon(icon_backdrop, (0, 0), COLOR_WHITE)
-        self.icon(icon_rightarrow, (3, 3), (55, 55, 55))
-
-        self.alarm.render((3, DISPLAY_HEIGHT - 23))
-
-        self.icon(icon_backdrop.rotate(180), (DISPLAY_WIDTH - 26, 0), COLOR_WHITE)
-        self.icon(icon_settings, (DISPLAY_WIDTH - 19 - 3, 3), (55, 55, 55))
-
 
 
 class EditView(View):
@@ -910,6 +911,8 @@ class Config:
         self.general_settings = [
             "alarm_enable",
             "alarm_interval",
+            "humidifier_high",
+            "humidifier_low"
         ]
 
     def load(self, settings_file="settings.yml"):
@@ -970,10 +973,38 @@ class Humidifier:
         self.bme280 = BME280(i2c_dev=self.bus)
         self.humidity = self.bme280.get_humidity()
         self.temperature = self.bme280.get_temperature()
+        GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT)
+        GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
+        self.on = False
+        self.humidity_high = 50.0
+        self.humidity_low = 40.0
+        self._update_i = 0
+
+    def update_from_yml(self, config):
+        if config is not None:
+            self.humidity_high = config.get("humidity_high", self.humidity_high)
+            print("Humidity High: {:.2f}%".format(self.humidity_high))
+            self.humidity_low = config.get("humidity_low", self.humidity_low)
+            print("Humidity Low: {:.2f}%".format(self.humidity_low))
 
     def update(self):
-        self.humidity = self.bme280.get_humidity()
-        self.temperature = self.bme280.get_temperature()
+        if self._update_i % 100 == 1:
+            self.humidity = self.bme280.get_humidity()
+            self.temperature = self.bme280.get_temperature()
+            # Turn on/off humidifier
+            if self.humidity > self.humidity_high:
+                if self.on:
+                    print("Humidity: {:.2f}%. Turning OFF".format(self.humidity))
+                GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
+                self.on = False
+            elif self.humidity < self.humidity_low:
+                if not self.on:
+                    print("Humidity: {:.2f}%. Turning ON".format(self.humidity))
+                GPIO.output(HUMIDIFIER_PIN, GPIO.HIGH)
+                self.on = True
+        self._update_i += 1
+
+
 
 def main():
     def handle_button(pin):
@@ -1035,6 +1066,7 @@ def main():
     for channel in channels:
         channel.update_from_yml(config.get_channel(channel.channel))
 
+    humidifier.update_from_yml(config.get_general())
     alarm.update_from_yml(config.get_general())
 
     print("Channels:")
