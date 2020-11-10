@@ -254,7 +254,7 @@ class MainView(View):
                 ((DISPLAY_WIDTH / 2) - (tw / 2.0)), DISPLAY_HEIGHT - th,
                 str_overlay,
                 font=self.font,
-                fill=COLOR_WHITE,
+                fill=COLOR_WHITE
             )
 
         # Icons
