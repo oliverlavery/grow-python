@@ -25,7 +25,7 @@ from grow.moisture import Moisture
 from grow.pump import Pump
 
 
-FPS = 5
+FPS = 2
 
 BUTTONS = [5, 6, 16, 24]
 LABELS = ["A", "B", "X", "Y"]
@@ -248,7 +248,7 @@ class MainView(View):
 
         # Humidifier Overlay
         if self.humidifier:
-            str_overlay = u'{:05.1f}\u00b0C {:05.1f}%'.format(self.humidifier.temperature, self.humidifier.humidity)
+            str_overlay = u'{:5.1f}\u00b0C  {:5.1f}%'.format(self.humidifier.temperature, self.humidifier.humidity)
             tw, th = self.font.getsize(str_overlay)
             self._draw.text(
                 (((DISPLAY_WIDTH / 2) - (tw / 2.0)), DISPLAY_HEIGHT - th),
