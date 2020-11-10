@@ -251,10 +251,10 @@ class MainView(View):
             str_overlay = u'{:05.2f}\u00b0C {:05.2f}%'.format(self.humidifier.temperature, self.humidifier.humidity)
             tw, th = self.font.getsize(str_overlay)
             self._draw.text(
-                ((DISPLAY_WIDTH / 2) - (tw / 2.0)), DISPLAY_HEIGHT - th,
+                (((DISPLAY_WIDTH / 2) - (tw / 2.0)), DISPLAY_HEIGHT - th),
                 str_overlay,
                 font=self.font,
-                fill=COLOR_WHITE
+                fill=COLOR_WHITE,
             )
 
         # Icons
