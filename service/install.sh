@@ -29,8 +29,8 @@ inform "Installing grow-monitor to /usr/bin/grow-monitor...\n"
 cp ../examples/monitor.py /usr/bin/grow-monitor
 chmod +x /usr/bin/grow-monitor
 
-inform "Installing settings to /etc/default/grow...\n"
-cp ../examples/settings.yml /etc/default/grow
+#inform "Installing settings to /etc/default/grow...\n"
+#cp ../examples/settings.yml /etc/default/grow
 
 inform "Installing systemd service...\n"
 cp grow-monitor.service /etc/systemd/system/
