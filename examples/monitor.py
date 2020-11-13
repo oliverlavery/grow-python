@@ -967,6 +967,7 @@ class Config:
     def set_general(self, settings):
         self.set("general", settings)
 
+
 class Humidifier:
     def __init__(self):
         self.bus = SMBus(1)
@@ -978,7 +979,6 @@ class Humidifier:
         self.on = False
         self.humidity_high = 50.0
         self.humidity_low = 40.0
-        # self._update_i = 0
 
     def update_from_yml(self, config):
         if config is not None:
@@ -988,22 +988,15 @@ class Humidifier:
             print("Humidity Low: {:.2f}%".format(self.humidity_low))
 
     def update(self):
-        # if self._update_i % 100 == 1:
         self.humidity = self.bme280.get_humidity()
         self.temperature = self.bme280.get_temperature()
         # Turn on/off humidifier
         if self.humidity > self.humidity_high:
-            if self.on:
-                print("Humidity: {:.2f}%. Turning OFF".format(self.humidity))
             GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
             self.on = False
         elif self.humidity < self.humidity_low:
-            if not self.on:
-                print("Humidity: {:.2f}%. Turning ON".format(self.humidity))
             GPIO.output(HUMIDIFIER_PIN, GPIO.HIGH)
             self.on = True
-        # self._update_i += 1
-
 
 
 def main():
