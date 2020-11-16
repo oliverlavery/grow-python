@@ -725,8 +725,8 @@ Dry point: {dry_point}
         if not self.auto_water:
             return False
         if time.time() - self.last_dose > self.watering_delay:
-            self.pump.dose(self.pump_speed, self.pump_time, blocking=False)
             self.last_dose = time.time()
+            self.pump.dose(self.pump_speed, self.pump_time, blocking=True)
             return True
         return False
 
