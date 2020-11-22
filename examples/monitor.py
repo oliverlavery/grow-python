@@ -24,6 +24,7 @@ from grow import Piezo
 from grow.moisture import Moisture
 from grow.pump import Pump
 
+import requests
 
 FPS = 10.0
 
@@ -725,6 +726,7 @@ Dry point: {dry_point}
         if not self.auto_water:
             return False
         if time.time() - self.last_dose > self.watering_delay:
+            GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
             self.last_dose = time.time()
             self.pump.dose(self.pump_speed, self.pump_time, blocking=True)
             return True
@@ -979,6 +981,10 @@ class Humidifier:
         self.on = False
         self.humidity_high = 50.0
         self.humidity_low = 40.0
+        self.room_on = False
+        self.room_humidity_high = 50.0
+        self.room_humidity_low = 40.0
+        self.ifttt_key = ""
 
     def update_from_yml(self, config):
         if config is not None:
@@ -986,15 +992,33 @@ class Humidifier:
             print("Humidity High: {:.2f}%".format(self.humidity_high))
             self.humidity_low = config.get("humidity_low", self.humidity_low)
             print("Humidity Low: {:.2f}%".format(self.humidity_low))
+            self.room_humidity_high = config.get("room_humidity_high", self.room_humidity_high)
+            print("Room Humidity High: {:.2f}%".format(self.room_humidity_high))
+            self.room_humidity_low = config.get("room_humidity_low", self.room_humidity_low)
+            print("Room Humidity Low: {:.2f}%".format(self.room_humidity_low))
+            self.ifttt_key = config.get("ifttt_key", self.ifttt_key)
+            requests.get(url="https://maker.ifttt.com/trigger/Humidifier_off/with/key/" + self.ifttt_key)
+
 
     def update(self):
         self.humidity = self.bme280.get_humidity()
         self.temperature = self.bme280.get_temperature()
+        # Turn on/off room humidifier
+        if self.humidity > self.room_humidity_high:
+            logging.info("Turning OFF room humidifier at {:.2f}".format(self.humidity))
+            requests.get(url="https://maker.ifttt.com/trigger/Humidifier_off/with/key/" + self.ifttt_key)
+            self.room_on = False
+        elif self.humidity < self.room_humidity_low:
+            logging.info("Turning ON room humidifier at {:.2f}".format(self.humidity))
+            requests.get(url="https://maker.ifttt.com/trigger/Humidifier_on/with/key/" + self.ifttt_key)
+            self.room_on = True
         # Turn on/off humidifier
         if self.humidity > self.humidity_high:
+            logging.info("Turning OFF humidifier at {:.2f}".format(self.humidity))
             GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
             self.on = False
         elif self.humidity < self.humidity_low:
+            logging.info("Turning ON humidifier at {:.2f}".format(self.humidity))
             GPIO.output(HUMIDIFIER_PIN, GPIO.HIGH)
             self.on = True
 
