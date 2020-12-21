@@ -25,11 +25,11 @@ from grow.moisture import Moisture
 from grow.pump import Pump
 
 import requests
+import tinytuya
 
 FPS = 10.0
 
 BUTTONS = [5, 6, 16, 24]
-HUMIDIFIER_PIN = 21
 
 LABELS = ["A", "B", "X", "Y"]
 
@@ -727,7 +727,6 @@ Dry point: {dry_point}
         if not self.auto_water:
             return False
         if time.time() - Channel.last_dose > self.watering_delay:
-            GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
             Channel.last_dose = time.time()
             self.pump.dose(self.pump_speed, self.pump_time, blocking=True)
             # Sleep to allow system to recover after pump load
@@ -979,8 +978,6 @@ class Humidifier:
         self.bme280 = BME280(i2c_dev=self.bus)
         self.humidity = self.bme280.get_humidity()
         self.temperature = self.bme280.get_temperature()
-        GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT)
-        GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
         self.on = False
         self.humidity_high = 50.0
         self.humidity_low = 40.0
@@ -992,6 +989,11 @@ class Humidifier:
             print("Humidity High: {:.2f}%".format(self.humidity_high))
             self.humidity_low = config.get("humidity_low", self.humidity_low)
             print("Humidity Low: {:.2f}%".format(self.humidity_low))
+            tuya_key = config.get("tuya_key")
+            tuya_id = config.get("tuya_id")
+            tuya_ip = config.get("tuya_ip")
+            self.tuya_switch = tinytuya.OutletDevice(tuya_id, tuya_ip, tuya_key)
+            self.tuya_switch.set_version(3.3)
 
 
     def update(self):
@@ -1000,11 +1002,11 @@ class Humidifier:
         # Turn on/off humidifier
         if self.humidity > self.humidity_high:
             logging.info("Turning OFF humidifier at {:.2f}".format(self.humidity))
-            GPIO.output(HUMIDIFIER_PIN, GPIO.LOW)
+            self.tuya_switch.set_status(False)
             self.on = False
         elif self.humidity < self.humidity_low:
             logging.info("Turning ON humidifier at {:.2f}".format(self.humidity))
-            GPIO.output(HUMIDIFIER_PIN, GPIO.HIGH)
+            self.tuya_switch.set_status(True)
             self.on = True
 
 
