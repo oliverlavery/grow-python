@@ -1002,6 +1002,10 @@ class Humidifier:
         # Turn on/off humidifier
         if self.humidity > self.humidity_high:
             logging.info("Turning OFF humidifier at {:.2f}".format(self.humidity))
+            # Bug, occasionally the Tuya state gets out of sync. If it looks like humidity is far too high, switch on and off
+            if self.humidity > self.humidity_high + 10.0:
+                logging.warning("FORCING OFF humidifier at {:.2f}".format(self.humidity))
+                self.tuya_switch.set_status(True)
             self.tuya_switch.set_status(False)
             self.on = False
         elif self.humidity < self.humidity_low:
